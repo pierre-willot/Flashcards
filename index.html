@@ -4,116 +4,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>pMemo | Spaced Repetition with Google Sheets</title>
-    <!-- Preload Google Fonts -->
+    <!-- Google Fonts & simple icons (Font Awesome) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome (self-hosted for better performance) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Vite-bundled CSS -->
   <script type="module" crossorigin src="/Flashcards/assets/index-DdIwMrG7.js"></script>
   <link rel="stylesheet" crossorigin href="/Flashcards/assets/index-DKYsG9Nk.css">
 </head>
 <body>
     <div class="app-wrapper">
-        <!-- Top header with auth status -->
+        <!-- top bar -->
         <header class="glass-header">
             <div class="logo-area">
-                <i class="fas fa-brain logo-icon" aria-hidden="true"></i>
+                <i class="fas fa-brain logo-icon"></i>
                 <h1>pMemo</h1>
-                <span class="flashcard-badge" aria-label="Flashcard mode">Flashcard</span>
+                <span class="flashcard-badge">Flashcard</span>
             </div>
             <div class="header-actions">
-                <div id="authStatus" class="auth-chip" aria-live="polite">
-                    <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>
-                    <span>Connecting...</span>
+                <div id="authStatus" class="auth-chip">
+                    <i class="fas fa-circle-notch fa-spin"></i> connecting
                 </div>
-                <button id="syncNowBtn" class="icon-btn" title="Sync with Google Sheets" aria-label="Sync">
-                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                <button id="syncNowBtn" class="icon-btn" title="Sync with Google Sheets">
+                    <i class="fas fa-sync-alt"></i>
                 </button>
-                <button id="configSheetBtn" class="icon-btn" title="Configure spreadsheet" aria-label="Configure">
-                    <i class="fas fa-table" aria-hidden="true"></i>
+                <button id="configSheetBtn" class="icon-btn" title="Configure spreadsheet">
+                    <i class="fas fa-table"></i>
                 </button>
             </div>
         </header>
 
-        <!-- Main app layout -->
+        <!-- main dashboard layout -->
         <div class="dashboard">
-            <!-- Sidebar: Stats and deck navigation -->
+            <!-- left sidebar (decks & stats) -->
             <aside class="sidebar glass-panel">
                 <div class="stats-card">
-                    <h2 class="visually-hidden">Study Stats</h2>
+                    <h3><i class="fas fa-chart-line"></i> Study stats</h3>
                     <div class="stat-item">
                         <span>Due cards</span>
-                        <span id="dueCount" aria-label="Due cards count">0</span>
+                        <span id="dueCount">0</span>
                     </div>
                     <div class="stat-item">
                         <span>Total cards</span>
-                        <span id="totalCardsCount" aria-label="Total cards count">0</span>
+                        <span id="totalCardsCount">0</span>
                     </div>
                     <div class="stat-item">
                         <span>Mastered (EF>2.3)</span>
-                        <span id="masteredCount" aria-label="Mastered cards count">0</span>
+                        <span id="masteredCount">0</span>
                     </div>
                 </div>
                 <div class="decks-section">
-                    <h2 class="visually-hidden">Decks</h2>
+                    <h3><i class="fas fa-layer-group"></i> Decks</h3>
                     <div id="deckListContainer" class="deck-list">
+                        <!-- dynamic deck filters -->
                         <button class="deck-filter active" data-deck="all">All decks</button>
                     </div>
                 </div>
                 <button id="addCardBtn" class="btn-primary btn-full">
-                    <i class="fas fa-plus-circle" aria-hidden="true"></i>
-                    <span>New flashcard</span>
+                    <i class="fas fa-plus-circle"></i> New flashcard
                 </button>
                 <div class="sheet-info">
-                    <i class="fas fa-google" aria-hidden="true"></i>
+                    <i class="fas fa-google"></i> 
                     <span id="sheetIdPreview">No sheet linked</span>
                 </div>
             </aside>
 
-            <!-- Main study area -->
+            <!-- main flashcard area -->
             <main class="study-area">
                 <div id="reviewContainer" class="flashcard-container">
-                    <!-- Empty state (shown when no cards due) -->
                     <div class="empty-state" id="emptyState">
-                        <i class="fas fa-smile-wink" aria-hidden="true"></i>
-                        <h2>All caught up! 🎉</h2>
+                        <i class="fas fa-smile-wink"></i>
+                        <h3>All caught up! 🎉</h3>
                         <p>No cards due right now. Add new cards or sync later.</p>
                         <button id="forceStudyBtn" class="btn-outline">Study any card</button>
                     </div>
-
-                    <!-- Flashcard interface (hidden by default) -->
                     <div id="activeCard" style="display: none;">
                         <div class="flashcard" id="flashcard">
                             <div class="card-front" id="cardFront">
-                                <div class="card-content" aria-label="Flashcard front"></div>
+                                <div class="card-content"></div>
                             </div>
                             <div class="card-back" id="cardBack">
-                                <div class="card-content" aria-label="Flashcard back"></div>
+                                <div class="card-content"></div>
                             </div>
                         </div>
                         <div class="answer-buttons" id="answerButtons">
-                            <button class="answer-btn again" data-grade="again" aria-label="Mark as 'Again'">
-                                <i class="fas fa-times-circle" aria-hidden="true"></i>
-                                <span>Again</span>
-                            </button>
-                            <button class="answer-btn hard" data-grade="hard" aria-label="Mark as 'Hard'">
-                                <i class="fas fa-hourglass-half" aria-hidden="true"></i>
-                                <span>Hard</span>
-                            </button>
-                            <button class="answer-btn good" data-grade="good" aria-label="Mark as 'Good'">
-                                <i class="fas fa-check-circle" aria-hidden="true"></i>
-                                <span>Good</span>
-                            </button>
-                            <button class="answer-btn easy" data-grade="easy" aria-label="Mark as 'Easy'">
-                                <i class="fas fa-rocket" aria-hidden="true"></i>
-                                <span>Easy</span>
-                            </button>
+                            <button class="answer-btn again" data-grade="again"><i class="fas fa-times-circle"></i> Again</button>
+                            <button class="answer-btn hard" data-grade="hard"><i class="fas fa-hourglass-half"></i> Hard</button>
+                            <button class="answer-btn good" data-grade="good"><i class="fas fa-check-circle"></i> Good</button>
+                            <button class="answer-btn easy" data-grade="easy"><i class="fas fa-rocket"></i> Easy</button>
                         </div>
                         <div class="card-progress">
-                            <span id="cardDeckTag" aria-label="Current deck"></span>
-                            <span id="cardDueHint" aria-label="Next review date"></span>
+                            <span id="cardDeckTag"></span>
+                            <span id="cardDueHint"></span>
                         </div>
                     </div>
                 </div>
@@ -121,61 +103,51 @@
         </div>
     </div>
 
-    <!-- Modal: Google Sheets configuration -->
-    <div id="sheetModal" class="modal" aria-hidden="true">
+    <!-- modal for sheet config & new card -->
+    <div id="sheetModal" class="modal">
         <div class="modal-content glass-panel">
-            <button class="close-modal" aria-label="Close modal">&times;</button>
-            <h2><i class="fab fa-google" aria-hidden="true"></i> Google Sheets Setup</h2>
-            <p>Connect to a spreadsheet with sheets named: <strong>"Cards"</strong> and <strong>"Progress"</strong>.</p>
-            <div class="form-group">
-                <label for="spreadsheetIdInput">Spreadsheet ID:</label>
-                <input type="text" id="spreadsheetIdInput" placeholder="e.g., 1ABCxyz...">
-            </div>
+            <span class="close-modal">&times;</span>
+            <h2><i class="fab fa-google"></i> Google Sheets Setup</h2>
+            <p>Connect to a spreadsheet with two sheets: <strong>"Cards"</strong> and <strong>"Progress"</strong>.</p>
+            <label>Spreadsheet ID:</label>
+            <input type="text" id="spreadsheetIdInput" placeholder="1ABCxyz...">
             <button id="saveSheetIdBtn" class="btn-primary">Load & sync</button>
             <hr>
             <div class="oauth-section">
-                <button id="googleSignInBtn" class="btn-google">
-                    <i class="fab fa-google" aria-hidden="true"></i>
-                    <span>Sign in with Google</span>
-                </button>
-                <div id="userEmailDisplay" class="user-email" aria-live="polite"></div>
+                <button id="googleSignInBtn" class="btn-google"><i class="fab fa-google"></i> Sign in with Google</button>
+                <div id="userEmailDisplay" class="user-email"></div>
             </div>
         </div>
     </div>
 
-    <!-- Modal: New card creation -->
-    <div id="newCardModal" class="modal" aria-hidden="true">
+    <div id="newCardModal" class="modal">
         <div class="modal-content glass-panel">
-            <button class="close-modal" aria-label="Close modal">&times;</button>
-            <h2><i class="fas fa-plus" aria-hidden="true"></i> Create new flashcard</h2>
-            <form id="newCardForm">
-                <div class="form-group">
-                    <label for="newFront">Front (question):</label>
-                    <textarea id="newFront" rows="2" placeholder="e.g., What is spaced repetition?" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="newBack">Back (answer):</label>
-                    <textarea id="newBack" rows="3" placeholder="e.g., A technique that increases intervals..." required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="newDeck">Deck:</label>
-                    <input type="text" id="newDeck" placeholder="General">
-                </div>
-                <div class="form-group">
-                    <label for="newTags">Tags (comma separated):</label>
-                    <input type="text" id="newTags" placeholder="vocabulary, science">
-                </div>
-                <button id="confirmNewCardBtn" class="btn-primary" type="submit">Create card</button>
-            </form>
+            <span class="close-modal">&times;</span>
+            <h2><i class="fas fa-plus"></i> Create new flashcard</h2>
+            <div class="form-group">
+                <label>Front (question)</label>
+                <textarea id="newFront" rows="2" placeholder="e.g., What is spaced repetition?"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Back (answer)</label>
+                <textarea id="newBack" rows="3" placeholder="e.g., A technique that increases intervals..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Deck</label>
+                <input type="text" id="newDeck" placeholder="General">
+            </div>
+            <div class="form-group">
+                <label>Tags (comma separated)</label>
+                <input type="text" id="newTags" placeholder="vocabulary, science">
+            </div>
+            <button id="confirmNewCardBtn" class="btn-primary">Create card</button>
         </div>
     </div>
 
-    <!-- Toast notifications -->
-    <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
+    <div id="toast" class="toast"></div>
 
-    <!-- Google API libraries (external) -->
+    <!-- Google API libraries -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js"></script>
-    <!-- Vite-bundled JavaScript -->
 </body>
 </html>
