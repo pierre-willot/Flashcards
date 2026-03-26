@@ -11,8 +11,8 @@
     <!-- Font Awesome (self-hosted for better performance) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Vite-bundled CSS -->
-  <script type="module" crossorigin src="/Flashcards/assets/index-BaHTZhCh.js"></script>
-  <link rel="stylesheet" crossorigin href="/Flashcards/assets/index-YVpiIapw.css">
+  <script type="module" crossorigin src="/Flashcards/assets/index-lQTEliEq.js"></script>
+  <link rel="stylesheet" crossorigin href="/Flashcards/assets/index-CFCTBfNy.css">
 </head>
 <body>
     <div class="app-wrapper">
@@ -174,8 +174,26 @@
     <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Google API libraries (external) -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  // Load Google APIs asynchronously and initialize gapi
+  function loadGoogleAPIs() {
+    const script = document.createElement('script');
+    script.src = 'https://apis.google.com/js/api.js';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      window.gapi.load('client', () => {
+        window.gapi.client.init({
+          apiKey: '', // Optional: Add if you have one
+          discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+        });
+      });
+    };
+    document.head.appendChild(script);
+  }
+  loadGoogleAPIs();
+</script>
     <!-- Vite-bundled JavaScript -->
 </body>
 </html>
