@@ -1,4 +1,4 @@
-// script.js - QuantumCards with Google Sheets & SM-2 algorithm (FIXED)
+// script.js - QuantumCards with Google Sheets & SM-2 algorithm (Complete)
 
 let gapiInited = false;
 let tokenClient;
@@ -30,13 +30,13 @@ const sheetIdPreviewSpan = document.getElementById('sheetIdPreview');
 
 // Helper: format date YYYY-MM-DD
 function getTodayDate() {
-    return new Date().toISOString().slice(0,10);
+    return new Date().toISOString().slice(0, 10);
 }
 
 function addDays(dateStr, days) {
     const d = new Date(dateStr);
     d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0,10);
+    return d.toISOString().slice(0, 10);
 }
 
 // SM-2 scheduling
@@ -110,17 +110,17 @@ async function loadCardsFromSheets() {
         const data = await response.json();
         const rows = data.values;
         if (!rows || rows.length <= 1) {
-            // create header if empty
+            // Create header if empty
             await authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Flashcards!A1:I1?valueInputOption=RAW`, {
                 method: 'PUT',
-                body: JSON.stringify({ values: [['id','front','back','deck','tags','easeFactor','intervalDays','dueDate','lastReview']] })
+                body: JSON.stringify({ values: [['id', 'front', 'back', 'deck', 'tags', 'easeFactor', 'intervalDays', 'dueDate', 'lastReview']] })
             });
             allCards = [];
             return true;
         }
         const headers = rows[0];
         const cards = [];
-        for (let i=1; i<rows.length; i++) {
+        for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             if (!row[0]) continue;
             cards.push({
@@ -138,72 +138,174 @@ async function loadCardsFromSheets() {
         }
         allCards = cards;
         return true;
-    } catch(e) { console.error(e); return false; }
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
 }
 
 async function updateCardInSheet(card) {
     if (!spreadsheetId || !accessToken) return false;
     const rowIndex = card.rowIndex;
     if (!rowIndex) return false;
-    const range = `Flashcards!A${rowIndex+1}:I${rowIndex+1}`;
-    const values = [[
-        card.id, card.front, card.back, card.deck, card.tags,
-        card.easeFactor, card.intervalDays, card.dueDate, card.lastReview
-    ]];
+    const range = `Flashcards!A${rowIndex + 1}:I${rowIndex + 1}`;
+    const values = [
+        [
+            card.id, card.front, card.back, card.deck, card.tags,
+            card.easeFactor, card.intervalDays, card.dueDate, card.lastReview
+        ]
+    ];
     try {
         await authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=USER_ENTERED`, {
             method: 'PUT',
             body: JSON.stringify({ values })
         });
         return true;
-    } catch(e) { console.error(e); return false; }
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
 }
 
 async function appendCardToSheet(card) {
     if (!spreadsheetId || !accessToken) return false;
     const range = `Flashcards!A:I`;
-    const values = [[
-        card.id, card.front, card.back, card.deck, card.tags,
-        card.easeFactor, card.intervalDays, card.dueDate, card.lastReview
-    ]];
+    const values = [
+        [
+            card.id, card.front, card.back, card.deck, card.tags,
+            card.easeFactor, card.intervalDays, card.dueDate, card.lastReview
+        ]
+    ];
     try {
         await authFetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED`, {
             method: 'POST',
             body: JSON.stringify({ values })
         });
         return true;
-    } catch(e) { console.error(e); return false; }
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
 }
 
-// UI refresh functions (unchanged but ensure they are defined)
-function refreshUI() { /* same as original */ }
-function renderDeckList() { /* same as original */ }
-function displayCurrentCard() { /* same as original */ }
-async function handleAnswer(grade) { /* same as original but with updated logic */ }
-function showToast(msg) { /* same as original */ }
+// ---------- UI Functions ----------
+function refreshUI() {
+    const today = getTodayDate();
+    const filtered = currentDeckFilter === 'all' ? allCards : allCards.filter(c => c.deck === currentDeckFilter);
+    dueCards = filtered.filter(c => c.dueDate <= today).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    dueCountSpan.innerText = dueCards.length;
+    totalCardsSpan.innerText = allCards.length;
+    const mastered = allCards.filter(c => c.easeFactor >= 2.3 && c.intervalDays >= 21).length;
+    masteredSpan.innerText = mastered;
 
-// Google Auth initialization with proper library checks
-function initGoogleAPI() {
-    gapi.load('client', async () => {
-        await gapi.client.init({
-            apiKey: '', // optional, but you can add one if needed
-            discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+    if (dueCards.length === 0) {
+        emptyStateDiv.style.display = 'flex';
+        activeCardDiv.style.display = 'none';
+    } else {
+        emptyStateDiv.style.display = 'none';
+        activeCardDiv.style.display = 'block';
+        currentCardIndex = 0;
+        displayCurrentCard();
+    }
+    renderDeckList();
+}
+
+function renderDeckList() {
+    const decks = [...new Set(allCards.map(c => c.deck))];
+    deckListContainer.innerHTML = `<button class="deck-filter ${currentDeckFilter === 'all' ? 'active' : ''}" data-deck="all">All decks (${allCards.length})</button>`;
+    decks.forEach(deck => {
+        const count = allCards.filter(c => c.deck === deck).length;
+        const btn = document.createElement('button');
+        btn.className = `deck-filter ${currentDeckFilter === deck ? 'active' : ''}`;
+        btn.setAttribute('data-deck', deck);
+        btn.innerHTML = `${deck} (${count})`;
+        deckListContainer.appendChild(btn);
+    });
+    document.querySelectorAll('.deck-filter').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            currentDeckFilter = btn.getAttribute('data-deck');
+            refreshUI();
         });
-        gapiInited = true;
-        if (accessToken) loadData();
+    });
+}
+
+function displayCurrentCard() {
+    if (dueCards.length === 0) return;
+    const card = dueCards[currentCardIndex];
+    cardFrontContent.innerText = card.front;
+    cardBackContent.innerText = card.back;
+    flashcardDiv.classList.remove('flipped');
+    cardDeckTagSpan.innerHTML = `<i class="fas fa-layer-group"></i> ${card.deck}  |  <i class="fas fa-tag"></i> ${card.tags || 'no tags'}`;
+    cardDueHintSpan.innerHTML = `Due: ${card.dueDate} | EF: ${card.easeFactor.toFixed(2)}`;
+}
+
+async function handleAnswer(grade) {
+    if (dueCards.length === 0) return;
+    const card = dueCards[currentCardIndex];
+    const updatedCard = scheduleCard(card, grade);
+    // update in allCards and preserve rowIndex
+    const idx = allCards.findIndex(c => c.id === updatedCard.id);
+    if (idx !== -1) allCards[idx] = updatedCard;
+    await updateCardInSheet(updatedCard);
+    showToast(`Answered ${grade} – next review: ${updatedCard.dueDate}`);
+    // refresh due list and advance
+    refreshUI();  // recompute dueCards
+    if (dueCards.length > 0 && currentCardIndex >= dueCards.length) currentCardIndex = 0;
+    if (dueCards.length > 0) displayCurrentCard();
+    else {
+        emptyStateDiv.style.display = 'flex';
+        activeCardDiv.style.display = 'none';
+    }
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.innerText = msg;
+    toast.style.opacity = '1';
+    setTimeout(() => toast.style.opacity = '0', 2500);
+}
+
+// ---------- Data Load ----------
+async function loadData() {
+    const success = await loadCardsFromSheets();
+    if (success) {
+        refreshUI();
+    } else {
+        console.error("Failed to load cards");
+        showToast("Failed to load cards from sheet");
+    }
+}
+
+// ---------- Google Auth ----------
+function initGoogleAPI() {
+    if (!window.gapi) {
+        console.error("Google APIs failed to load");
+        authStatusDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Google APIs failed`;
+        return;
+    }
+    gapi.load('client', async () => {
+        try {
+            await gapi.client.init({
+                apiKey: '',
+                discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+            });
+            gapiInited = true;
+            if (accessToken) loadData();
+        } catch (error) {
+            console.error("Failed to initialize Google API client:", error);
+            authStatusDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> API init failed`;
+        }
     });
 }
 
 function setupTokenClient() {
-    // Wait for the GSI library to be available
     if (!window.google || !window.google.accounts) {
         setTimeout(setupTokenClient, 100);
         return;
     }
     tokenClient = google.accounts.oauth2.initTokenClient({
-       client_id: '471539585536-v1f09grtv1na4ai2okq6pl08ff934jfb.apps.googleusercontent.com',
-
-        scope: 'https://www.googleapis.com/auth/spreadsheets',
+      client_id: '471539585536-v1f09grtv1na4ai2okq6pl08ff934jfb.apps.googleusercontent.com',
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
         callback: (resp) => {
             if (resp.error) {
                 console.error(resp);
@@ -213,22 +315,107 @@ function setupTokenClient() {
             accessToken = resp.access_token;
             localStorage.setItem('quantum_token', accessToken);
             authStatusDiv.innerHTML = `<i class="fas fa-check-circle"></i> Authenticated`;
-            loadData();
+            if (spreadsheetId) loadData();
         },
+        ux_mode: 'popup',
+        prompt: 'consent'
     });
 }
 
-// Add event listeners and other functions as in original, but ensure all references are correct
+// ---------- Event Listeners ----------
+document.getElementById('syncNowBtn').addEventListener('click', () => {
+    if (accessToken && spreadsheetId) loadData();
+    else showToast("Please configure sheet and sign in");
+});
+document.getElementById('configSheetBtn').addEventListener('click', () => {
+    document.getElementById('spreadsheetIdInput').value = spreadsheetId;
+    document.getElementById('sheetModal').style.display = 'flex';
+});
+document.getElementById('saveSheetIdBtn').addEventListener('click', () => {
+    const newId = document.getElementById('spreadsheetIdInput').value.trim();
+    if (newId) {
+        spreadsheetId = newId;
+        localStorage.setItem('quantum_sheet_id', spreadsheetId);
+        sheetIdPreviewSpan.innerText = spreadsheetId.slice(0, 10) + '...';
+        if (accessToken) loadData();
+        else showToast("Sign in first, then sync");
+        document.getElementById('sheetModal').style.display = 'none';
+    }
+});
+document.getElementById('addCardBtn').addEventListener('click', () => {
+    document.getElementById('newCardModal').style.display = 'flex';
+});
+document.getElementById('confirmNewCardBtn').addEventListener('click', async () => {
+    const front = document.getElementById('newFront').value.trim();
+    const back = document.getElementById('newBack').value.trim();
+    if (!front || !back) { showToast('Front and back required'); return; }
+    const newCard = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now() + '' + Math.random(),
+        front, back,
+        deck: document.getElementById('newDeck').value.trim() || 'General',
+        tags: document.getElementById('newTags').value.trim(),
+        easeFactor: 2.5,
+        intervalDays: 1,
+        dueDate: getTodayDate(),
+        lastReview: '',
+        rowIndex: null
+    };
+    const success = await appendCardToSheet(newCard);
+    if (success) {
+        showToast('Card added! Syncing...');
+        await loadData();
+        document.getElementById('newCardModal').style.display = 'none';
+        document.getElementById('newFront').value = '';
+        document.getElementById('newBack').value = '';
+        document.getElementById('newDeck').value = '';
+        document.getElementById('newTags').value = '';
+    } else {
+        showToast('Error adding card');
+    }
+});
+document.getElementById('forceStudyBtn').addEventListener('click', () => {
+    if (allCards.length > 0 && dueCards.length === 0) {
+        dueCards = [...allCards];
+        currentCardIndex = 0;
+        emptyStateDiv.style.display = 'none';
+        activeCardDiv.style.display = 'block';
+        displayCurrentCard();
+    } else refreshUI();
+});
+document.querySelectorAll('.close-modal').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.getElementById('sheetModal').style.display = 'none';
+        document.getElementById('newCardModal').style.display = 'none';
+    });
+});
+window.onclick = (e) => {
+    if (e.target.classList.contains('modal')) e.target.style.display = 'none';
+};
+flashcardDiv.addEventListener('click', () => {
+    flashcardDiv.classList.toggle('flipped');
+});
+answerBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const grade = btn.getAttribute('data-grade');
+        if (grade) handleAnswer(grade);
+    });
+});
 
-// Finally, on page load
+// ---------- Initialization ----------
 window.addEventListener('load', () => {
     const storedToken = localStorage.getItem('quantum_token');
     if (storedToken) accessToken = storedToken;
     spreadsheetId = localStorage.getItem('quantum_sheet_id') || '';
-    sheetIdPreviewSpan.innerText = spreadsheetId ? spreadsheetId.slice(0,10)+'...' : 'No sheet linked';
-    initGoogleAPI();
-    setupTokenClient(); // now waits for GSI
-    if (spreadsheetId && accessToken) loadData();
-    else if (spreadsheetId) authStatusDiv.innerHTML = `<i class="fas fa-sign-in-alt"></i> Sign in required`;
-    else authStatusDiv.innerHTML = `<i class="fas fa-cog"></i> Configure sheet`;
+    sheetIdPreviewSpan.innerText = spreadsheetId ? spreadsheetId.slice(0, 10) + '...' : 'No sheet linked';
+
+    const googleApiInterval = setInterval(() => {
+        if (window.gapi && window.google?.accounts) {
+            clearInterval(googleApiInterval);
+            initGoogleAPI();
+            setupTokenClient();
+            if (spreadsheetId && accessToken) loadData();
+            else if (spreadsheetId) authStatusDiv.innerHTML = `<i class="fas fa-sign-in-alt"></i> Sign in required`;
+            else authStatusDiv.innerHTML = `<i class="fas fa-cog"></i> Configure sheet`;
+        }
+    }, 200);
 });
